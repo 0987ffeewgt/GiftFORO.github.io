@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата TON Connect</title>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <style>
+        body {
+            background-color: #101827;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background: #1f2937;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 300px;
+        }
+        h2 { margin-bottom: 20px; }
+        
+        /* Место для кнопки подключения */
+        #ton-connect {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        /* Кнопка оплаты (скрыта пока нет кошелька) */
+        #pay-btn {
+            display: none;
+            width: 100%;
+            padding: 15px;
+            background: #0098EA;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #pay-btn:hover { background: #007aff; }
+        
+        .status {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="https://ton.org/download/ton_symbol.svg" width="60" style="margin-bottom: 20px;">
+        <h2>Оплата услуги</h2>
+        
+        <div id="ton-connect"></div>
+
+        <button id="pay-btn" onclick="sendTransaction()">
+            Оплатить 1 TON
+        </button>
+
+        <div id="status" class="status">Ожидание подключения...</div>
+    </div>
+
+    <script>
+        // 1. Инициализация TON Connect
+        // ВАЖНО: Укажи правильный путь к manifest.json относительно твоего сайта
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'tonconnect-manifest.json', 
+            buttonRootId: 'ton-connect' // ID блока, куда вставить кнопку подключения
+        });
+
+        const payButton = document.getElementById('pay-btn');
+        const statusText = document.getElementById('status');
+
+        // 2. Слушаем изменения статуса кошелька
+        tonConnectUI.onStatusChange((walletInfo) => {
+            if (walletInfo) {
+                // Если кошелек подключен
+                payButton.style.display = 'block';
+                statusText.innerText = 'Кошелек подключен: ' + formatAddress(walletInfo.account.address);
+            } else {
+                // Если отключен
+                payButton.style.display = 'none';
+                statusText.innerText = 'Подключите кошелек для оплаты';
+            }
+        });
+
+        // 3. Функция отправки транзакции
+        async function sendTransaction() {
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 600, // Транзакция валидна 10 минут
+                messages: [
+                    {
+                        address: "UQBilFNbDjQ-XLFMbrxVRrxrGgXd9U03lMuiGZk3jCa3ta0h", // ТВОЙ КОШЕЛЕК
+                        amount: "1000000000", // Сумма в нанотонах (1 TON = 1 000 000 000)
+                    }
+                ]
+            };
+
+            try {
+                statusText.innerText = 'Подтвердите транзакцию в кошельке...';
+                // Вызов окна подтверждения в кошельке
+                const result = await tonConnectUI.sendTransaction(transaction);
+                
+                statusText.innerText = 'Успешно! Транзакция отправлена.';
+                alert('Оплата прошла успешно!');
+                console.log(result);
+            } catch (e) {
+                console.error(e);
+                statusText.innerText = 'Ошибка или отмена оплаты.';
+            }
+        }
+
+        // Вспомогательная функция для красоты адреса
+        function formatAddress(address) {
+            return address.slice(0, 4) + '...' + address.slice(-4);
+        }
+    </script>
+
+</body>
+</html>
